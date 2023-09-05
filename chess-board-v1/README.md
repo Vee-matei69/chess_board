@@ -1,0 +1,1 @@
+Electronic chess board
