@@ -150,7 +150,7 @@ Square A_1;
 
 void initializeBoard(){  
 
-  /* initialize aquare A_1*/
+  /* initialize square A_1*/
   A_1.reedPin = 2;
   A_1.ledPin = 14;
   
