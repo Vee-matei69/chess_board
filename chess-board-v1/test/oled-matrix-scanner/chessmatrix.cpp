@@ -93,6 +93,7 @@ void ChessMatrix::scan(){
     pinMode(current_column, INPUT);
     
   }
+  
 }
 
 void ChessMatrix::print_matrix(){
