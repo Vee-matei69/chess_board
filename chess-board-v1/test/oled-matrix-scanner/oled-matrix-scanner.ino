@@ -51,10 +51,10 @@ unsigned long scan_interval = 1000;
 #define NO_OF_ROWS 8
 #define NO_OF_COLS 8
 
-byte rows[] = {10, 11};
+byte rows[] = {2,3,4,5,6,7,8,9};
 const int row_count = sizeof(rows)/sizeof(rows[0]);
 
-byte cols[] = {2, 3};
+byte cols[] = {10,11,12,13,14,15,16,17};
 const int col_count = sizeof(cols)/sizeof(cols[0]);
 byte keys[col_count][row_count];
 
@@ -132,7 +132,7 @@ void setup() {
     pinMode(rows[i], INPUT);
   }
   
-  initialize_oled();
+  //initialize_oled();
 }
 
 void loop() {

@@ -1,15 +1,107 @@
 
 #include "Arduino.h"
 #include "defs.h"
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
 
-// pins
+// CHESS board initialization pins - for rows and columns
 int pins[4] = {2, 3, 4, 5};
 
-/* enum to store chess piece colors */
-enum COLOR{
-  WHITE = 1,
-  BLACK = 0
+// OLED screen variables
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET 4
+#define col_offset 10 // offset to arrange board layout on the screen
+
+#define SCREEN_ADDRESS 0x3C
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// matrix code
+#define NO_OF_ROWS 8
+#define NO_OF_COLS 8
+
+byte rows[] = {2,3,4,5,6,7,8,9};
+const int row_count = sizeof(rows)/sizeof(rows[0]);
+
+byte cols[] = {10,11,12,13,14,15,16,17};
+const int col_count = sizeof(cols)/sizeof(cols[0]);
+byte keys[col_count][row_count];
+byte previous_matrix[row_count][col_count];
+
+// LED matrix variables
+#define LED_PIN 52       // Define the digital pin connected to the data input of the NeoPixel strip.
+#define NUM_LEDS 64      // Define the number of LEDs in your strip.
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+// set up LED control matrixes - control in groups of 8
+int leds[col_count][row_count] = { // each LED for each row
+  {0,1,2,3,4,5,6,7},
+  {15,14,13,12,11,10,9,8 },// reverse-mapped
+  {16,17,18,19,20,21,22,23},
+  {31,30,29,28,27,26,25,24},// reverse-mapped
+  {32,33,34,35,36,37,38,39},
+  {47,46,45,44,43,42,41,40}, // reverse-mapped
+  {48,49,50,51,52,53,54,55},
+  {63,62,61,60,59,58,57,56} // reverse-mapped
 };
+
+/* initialize oled screen */
+void initialize_oled(){
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
+    debugln("[-]ERR: Display allocation failed!");
+    for(;;);
+  }
+  
+  // allocation succeeded - buffer initial contents
+  debugln("display found");
+  display.clearDisplay();
+}
+
+void readMatrix(){
+  // iterate thru the columns
+  for(int col_index=0; col_index<col_count; col_index++){
+    byte current_column = cols[col_index];
+    pinMode(current_column, OUTPUT);
+    digitalWrite(current_column, LOW);
+
+    //iterate thru the rows 
+    for(int row_index=0; row_index<row_count;row_index++){
+      byte row_col = rows[row_index];
+      pinMode(row_col, INPUT_PULLUP); // enable the pull up resistor
+      keys[col_index][row_index] = digitalRead(row_col);
+      pinMode(row_col, INPUT); // disable the pull up resistor
+    }
+
+    pinMode(current_column, INPUT); // disable the column
+  }
+}
+
+void printMatrix(){
+  for(int row_index=0; row_index<row_count; row_index++){
+    if(row_index < 10){
+      Serial.print(F("0"));
+    }
+    Serial.print(row_index); Serial.print(F(":"));
+
+    // check each column
+    for(int col_index=0; col_index<col_count; col_index++){
+      Serial.print(keys[col_index][row_index]);
+      if(col_index < col_count){
+        Serial.print(F(", "));
+      }
+    }
+    Serial.println();
+  }
+  Serial.println();
+
+}
+
+/* enum to store chess piece colors */
+// enum COLOR{
+//   WHITE,
+//   BLACK
+// };
 
 enum SIDE{
   WHITE_SIDE = 1,
@@ -180,12 +272,60 @@ void initializePins(){
 void setup(){
   Serial.begin(9600);
   
-  initializePins();
-  initializeBoard();
-   
+  // initialize chess matrix
+  //matrix.init_pins();
+  for(int i=0; i<col_count; i++){
+    pinMode(cols[i], INPUT_PULLUP);
+  }
+
+  for(int i=0; i<row_count; i++){
+    pinMode(rows[i], INPUT);
+  }
+
+  // initialize LED strip
+  strip.begin();
+  strip.show();  // Initialize all pixels to 'off'
+
 }
 
 void loop(){
+  readMatrix();
+
+  if(Serial.read() == '!'){
+    printMatrix();
+    //update_display();
+
+    // light LEDS for the unoccupied cells
+    for(int row=0; row<row_count; row++){
+      for(int col=0; col<col_count; col++){
+        if(keys[col][row] == 1){
+          //1  means unoccupied cell - light LED
+          
+          strip.setPixelColor(leds[row][col], strip.Color(255, 50, 50));
+        } else {
+          strip.setPixelColor(leds[row][col], strip.Color(0,0,0));
+        }
+
+        strip.show();
+      }
+
+      
+    }
+
+    // strip.setPixelColor(leds[7][7], strip.Color(0, 255, 0));
+    // // strip.setPixelColor(leds[1][1], strip.Color(0, 255, 0));
+    // strip.show();
+
+  }
+
+  // test the LED matrix
+  // for(int i=0;i<8; i++){
+  //   strip.setPixelColor(pxl1[i], strip.Color(255, 50, 50));
+  //   strip.setPixelColor(pxl2[i], strip.Color(255, 255, 50));
+  //   strip.show();
+  //   delay(50);
+  // }
+
 
   // if(A_1.isInitiallyOccupied()){
   //   // this square has a piece on it at the beginning, so current state is true
@@ -199,16 +339,16 @@ void loop(){
   // } else {
 
   
-    if(A_1.isOccupiedNow()){
-        a1PreviousState = a1CurrentState;
-    }
+  // if(A_1.isOccupiedNow()){
+  //     a1PreviousState = a1CurrentState;
+  // }
 
-    if(A_1.getCurrentState() != a1PreviousState){
-      Serial.println("Lifted");
-    } else {
-      Serial.println("No change");
-    }
-  
+  // if(A_1.getCurrentState() != a1PreviousState){
+  //   Serial.println("Lifted");
+  // } else {
+  //   Serial.println("No change");
+  // }  
+
 
 
 }
