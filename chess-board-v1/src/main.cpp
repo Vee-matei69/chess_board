@@ -97,166 +97,146 @@ void printMatrix(){
 
 }
 
-/* enum to store chess piece colors */
-// enum COLOR{
-//   WHITE,
-//   BLACK
-// };
-
-enum SIDE{
-  WHITE_SIDE = 1,
-  BLACK_SIDE = 0
-};
-
-enum piece_values{}; // todo: add later
-
-
-typedef struct {
-  int row, col;
-} Position;
-
-// reed switches 
-
-
-/* class to define chess piece */
-// class Pawn{
-//   public:
-//     int color;
-//     char name[10];
-//     bool moved;
-//     bool lifted;
-//     Position piece_position;
-    
-//     void forward();
-//     void capture();
-//     void checkmate();
-//     void captured();
-// };
-
-// create pieces subclasses
-// class Pawn : public Piece {
-//   public:
-//     const  possible_moves[2] = {
-//         "forward",
-//         "diagonal",
-//     } 
-// };
-
-/**
-  * Initilize the board structure, shape, no of cols and rows
-  *
-  *
-  */
-// class Board{
-
-//   int board[ROWS][COLS];
-//   int pieces = NO_OF_PIECES;
-  
-//   Position piece_position; 
-
-// };
-
 /* initial states of all the squares */
 bool a1CurrentState, a1PreviousState;
 
-enum PIECE_VALUES{
-  PAWN =1,
-  KNIGHT = 2,
-  BISHOP = 3,
-  ROOK = 4,
-  QUEEN = 5,
-  KING = 6
-};
+// enum PIECE_VALUES{
+//   PAWN =1,
+//   KNIGHT = 2,
+//   BISHOP = 3,
+//   ROOK = 4,
+//   QUEEN = 5,
+//   KING = 6
+// };
 
-/* hold piece properties */
-class Piece {
-  public:
-    uint8_t piece_value = 0;  // no piece placed here by default
+#define PAWN 1
+#define KNIGHT  2
+#define BISHOP  3
+#define ROOK  4
+#define QUEEN  5
+#define KING  6
 
-};
+/**
+ * @brief each piece has a name
+ * each piece has a square it is currently on - defined by (row,col)
+ * each piece has a square it was previously on - defined by (row,col)
+ * each piece has its own valid moves
+ * 
+ */
+typedef struct piece{
+  char name; // what piece it is
+  char side; // side = 1(WHITE), -1(BLACK)
+  char xpos; // ranges between A and H (A=0, H=7)
+  char ypos; // ranges between 1 and 8 (1=0, 8=7)
+  char moved; // 1 - has moved this game
 
-/* create chess pieces */
-/*================== PAWN ========================*/
-class Pawn: public Piece{
-  String validMoves[2] = {"forward", "diagonal"};
-};
+} piece; 
 
-/* hold the properties of a single square */
-class Square{
-  public:
-    String address = "";
-    uint8_t reedPin;
-    uint8_t ledPin;
-    uint8_t piece = 0;
-    bool previous_state;
-    bool current_state; 
-
-    /* check if the square is occupied*/
-    bool isInitiallyOccupied(){
-
-      if(digitalRead(this->reedPin) == 0){
-
-        current_state = true;  // true represents an occupied square and 0 respresents a "not occupied" square
-        previous_state = current_state; // same in the beginning
-
-        return true;
-      } else {
-        current_state = false;
-        previous_state = current_state; // same in the beginning
-
-        return false;
-      }
-    }
-
-    /* check if this square is occupied at this moment */
-    bool isOccupiedNow(){
-      if(digitalRead(this->reedPin) == 0){
-        current_state = true; // piece is still on the square
-      } else {
-        current_state = false; // the piece has been lifted
-      }
-    }
-
-    /* check the current state of a sqaure*/
-    bool getCurrentState(){
-      isOccupiedNow();
-
-      return this->current_state;
-    }
-
-    /* check the previous state of a sqaure*/
-    bool getPreviousState(){
-      return this->previous_state;
-    }
-
-    /* light LED */
-    void lightLED(){
-      digitalWrite(this->ledPin, HIGH);
-    }
-
-};
-
-
-// create a square
-Square A_1;
+piece* board[8][8] = {0}; // initialize a 8x8 board of pieces
 
 void initializeBoard(){  
+  piece* pawn;
+  piece* rook;
+  piece* knight;
+  piece* bishop;
+  piece* queen;
+  piece* king;
 
-  /* initialize square A_1*/
-  A_1.reedPin = 2;
-  A_1.ledPin = 14;
-  
-  if(A_1.isInitiallyOccupied()){
-    A_1.lightLED();
+  char side_loop = -1;
+
+  // initialize white pawns
+  uint8_t i, j;
+
+  for(j = 1; j < 8; j+=5){
+    side_loop = side_loop * -1; // side_lopp = 1
+    for(int i=0; i< 8; i++){
+      pawn = (piece*) malloc(sizeof(piece)); // allocate memory for a single piece
+      board[j][i] = pawn;
+      //pawn->name = PIECE_VALUES::PAWN;
+      pawn->name = PAWN;
+      pawn->side = side_loop;
+      pawn->xpos = i;
+      pawn->ypos = j;
+
+    }
+    
   }
 
-  A_1.piece = PIECE_VALUES::PAWN; /* initial piece is a PAWN */
+  // initialize rooks
+  side_loop = -1;
+  for(j=0; j <8; j+=7){
+    side_loop = side_loop * -1;
+    for(i=0; i<8; i+=7){
+      rook = (piece*) malloc(sizeof(piece));
+      board[j][i] = rook;
+      // rook->name = PIECE_VALUES::ROOK;
+      rook->name = ROOK;
+      rook->side = side_loop;
+      rook->xpos = i;
+      rook->ypos = j;
+      rook->moved = 0;
+    }
 
-  a1CurrentState = A_1.getCurrentState();
-  a1PreviousState = A_1.getPreviousState();
+  }
 
-  Serial.println(a1CurrentState);
-  Serial.println(a1PreviousState);
+  // initialize knights
+  side_loop = -1;
+  for(j=0; j < 8; j+=7){
+    side_loop = side_loop * -1;
+    for(i = 1; i<8; i+=5){
+      knight = (piece*) malloc(sizeof(piece));
+      board[j][i] = knight;
+      // knight->name = PIECE_VALUES::KNIGHT;
+      knight->name = KNIGHT;
+      knight->side = side_loop;
+      knight->xpos = i;
+      knight->ypos = j;
+
+    }
+  }
+
+  // initialize bishop
+  side_loop = -1;
+  for(j=0; j < 8; j+=7){
+    for(i = 2; i < 8; i+=3){
+      bishop = (piece*) malloc(sizeof(piece));
+      board[j][i] = bishop;
+      // bishop->name = PIECE_VALUES::BISHOP;
+      bishop->name = BISHOP;
+      bishop->side = side_loop;
+      bishop->xpos = i;
+      bishop->ypos = j;
+
+    }
+  }
+
+  // initialize queen
+  side_loop = -1;
+  for(j=0; j < 8; j += 7){
+    side_loop = side_loop * -1;
+    queen = (piece*) malloc(sizeof(piece));
+    board[j][3] = queen;
+    // queen->name = PIECE_VALUES::QUEEN;
+    queen->name = QUEEN;
+    queen->side = side_loop;
+    queen->ypos = j;
+    queen->xpos = 3;
+  }
+
+  // initialize king
+  side_loop = -1;
+  for(int j =0; j < 8; j+=7){
+    side_loop = side_loop * -1;
+    king = (piece*) malloc(sizeof(piece));
+    board[j][4] = king;
+    // king->name = PIECE_VALUES::KING;
+    king->name = KING;
+    king->side = side_loop;
+    king->xpos = 4;
+    king->ypos = j;
+    king->moved = 0; 
+
+  }
 
 }
 
@@ -271,17 +251,35 @@ void initializePins(){
 
 void setup(){
   Serial.begin(9600);
-  
+  delay(200);
+
   // initialize chess matrix
   //matrix.init_pins();
   for(int i=0; i<col_count; i++){
     pinMode(cols[i], INPUT_PULLUP);
   }
 
-  for(int i=0; i<row_count; i++){
+  // set up row pins as INPUTS
+  for(int i= 0; i<row_count; i++){
     pinMode(rows[i], INPUT);
   }
 
+  Serial.println("Intialized");
+
+  initializeBoard();
+
+  // print initial baord setup
+  for (int j = 0; j < 8; j++){ // rows
+    /* code */
+    for (int i = 0; i < 8; i++){ // columns
+      /* code */
+      Serial.print(board[j][i]->name); Serial.print(" | ");
+    }
+
+    Serial.println();
+    
+  }
+  
   // initialize LED strip
   strip.begin();
   strip.show();  // Initialize all pixels to 'off'
@@ -308,8 +306,7 @@ void loop(){
 
         strip.show();
       }
-
-      
+ 
     }
 
     // strip.setPixelColor(leds[7][7], strip.Color(0, 255, 0));

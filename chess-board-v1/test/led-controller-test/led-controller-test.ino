@@ -1,5 +1,6 @@
+#define led 52
 void setup() {
-  // put your setup code here, to run once:
+  pinMode(led, OUTPUT);
 
 }
 
