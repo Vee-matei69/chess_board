@@ -51,12 +51,13 @@ unsigned long scan_interval = 1000;
 #define NO_OF_ROWS 8
 #define NO_OF_COLS 8
 
-byte rows[] = {2,3,4,5,6,7,8,9};
+byte rows[] = {10,11,12,13,14,15,16,17};
 const int row_count = sizeof(rows)/sizeof(rows[0]);
 
-byte cols[] = {10,11,12,13,14,15,16,17};
+byte cols[] = {2,3,4,5,6,7,8,9};
 const int col_count = sizeof(cols)/sizeof(cols[0]);
-byte keys[col_count][row_count];
+
+byte keys[row_count][col_count];
 
 void readMatrix(){
   // iterate thru the columns
@@ -69,7 +70,7 @@ void readMatrix(){
     for(int row_index=0; row_index<row_count;row_index++){
       byte row_col = rows[row_index];
       pinMode(row_col, INPUT_PULLUP); // enable the pull up resistor
-      keys[col_index][row_index] = digitalRead(row_col);
+      keys[row_index][col_index] = digitalRead(row_col);
       pinMode(row_col, INPUT); // disable the pull up resistor
     }
 
@@ -86,7 +87,7 @@ void printMatrix(){
 
     // check each column
     for(int col_index=0; col_index<col_count; col_index++){
-      Serial.print(keys[col_index][row_index]);
+      Serial.print(keys[row_index][col_index]);
       if(col_index < col_count){
         Serial.print(F(", "));
       }
