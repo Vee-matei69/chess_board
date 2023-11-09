@@ -1,4 +1,3 @@
-
 #include "Arduino.h"
 #include "defs.h"
 #include <Adafruit_NeoPixel.h>
@@ -17,8 +16,11 @@ const int row_count = sizeof(rows)/sizeof(rows[0]);
 
 byte cols[] = {2,3,4,5,6,7,8,9};
 const int col_count = sizeof(cols)/sizeof(cols[0]);
-byte keys[row_count][col_count];
-byte previous_matrix[row_count][col_count];
+char keys[row_count][col_count]; // (the rows respresent y-axis, columns respresent x-axis)
+char previous_matrix[row_count][col_count];
+char current_matrix[row_count][col_count];
+char avail[8][8] = {0};
+int init_y, init_x;
 
 // LED matrix variables
 #define LED_PIN 52       // Define the digital pin connected to the data input of the NeoPixel strip.
@@ -125,7 +127,7 @@ void drawBoardOnScreen(){
   }
 }
 
-void printMatrix(){
+void printCurrentMatrix(){
   for(int row_index=0; row_index<row_count; row_index++){
     if(row_index < 10){
       Serial.print(F("0"));
@@ -142,6 +144,28 @@ void printMatrix(){
     Serial.println();
   }
   Serial.println();
+
+}
+
+
+void printPreviousMatrix(){
+  for(int row_index=0; row_index<row_count; row_index++){
+    if(row_index < 10){
+      Serial.print(F("0"));
+    }
+    Serial.print(row_index); Serial.print(F(":"));
+
+    // check each column
+    for(int col_index=0; col_index<col_count; col_index++){
+      Serial.print(previous_matrix[row_index][col_index]);
+      if(col_index < col_count){
+        Serial.print(F(", "));
+      }
+    }
+    Serial.println();
+  }
+  Serial.println();
+
 
 }
 
@@ -288,6 +312,59 @@ void initializeBoard(){
 
 }
 
+
+/**
+ * calculate moves for each piece
+ * 
+ */
+void calc_pawn_moves(piece* pawn){
+  char pawn_y_sideff = pawn->ypos + (pawn->side * 2);
+  char pawn_y_sidef = pawn->ypos + (pawn->side * 1);
+  char pawn_x_sider = pawn->xpos + 1;
+  char pawn_x_sidel = pawn->xpos -1;
+  avail[pawn->ypos][pawn->xpos] = 1;  
+
+  //two squares up
+	if ( ((pawn->ypos == 1 && pawn->side == 1) ||(pawn->ypos == 6 && pawn->side == -1))  && (board[pawn_y_sideff][pawn->xpos] == 0))//no piece should be there
+		avail[pawn_y_sideff][pawn->xpos] = 1;
+	
+	//diag right
+	if (((pawn_x_sider)<8) && (board[pawn_y_sidef][pawn_x_sider] != 0) && (board[pawn_y_sidef][pawn_x_sider]->side != pawn->side)) //see if piece is there
+		avail[pawn_y_sidef][pawn_x_sider] = 1;
+
+	//diag left
+	if (((pawn_x_sidel)>-1) && (board[pawn_y_sidef][pawn_x_sidel] != 0) && (board[pawn_y_sidef][pawn_x_sidel]->side != pawn->side)) //see if enemy piece is there
+		avail[pawn_y_sidef][pawn_x_sidel] = 1;
+	
+	//one square up
+	if (board[pawn_y_sidef][pawn->xpos] == 0) // no piece should be in front of pawn
+		avail[pawn_y_sidef][pawn->xpos] = 1;
+
+}
+
+/**
+ * 
+ */
+
+/**
+ * Calculate piece moves
+ * 
+ */
+void calc_piece_moves(){
+  char piece_name = board[init_y][init_x]->name;	
+  //reset_array(); //reset avail array for each piece
+
+  if(piece_name == PAWN){
+    calc_pawn_moves(board[init_y][init_x]);
+  }
+
+}
+
+
+void calculate_pawn_moves(){
+
+}
+
 void initializePins(){
   int no_of_pins = sizeof(pins)/sizeof(int);
   
@@ -340,43 +417,49 @@ void loop(){
 
 
   readMatrix();
+
+  // store the state of the current matrix in the previosu matrix
+  for (int i = 0; i < 8; i++){
+
+    for (int j = 0; j < 8; j++)
+    {
+      previous_matrix[i][j] = keys[i][j];
+    }
+    
+  }
   
   delay(400);
 
-  printMatrix();
+  printCurrentMatrix();
+  printPreviousMatrix();
   //update_display();
 
   // light LEDS for the unoccupied cells
-  for(int col=0; col<col_count; col++){
-    for(int row=0; row<row_count; row++){
-      if(keys[row][col] == 1){
-        //1  means unoccupied cell - green LED
+  // for(int col=0; col<col_count; col++){
+  //   for(int row=0; row<row_count; row++){
+  //     if(keys[row][col] == 1){
+  //       //1  means unoccupied cell - green LED
         
-        strip.setPixelColor(leds[row][col], strip.Color(0, 255, 50));
-        // Serial.print(row + ',' + col);
+  //       strip.setPixelColor(leds[row][col], strip.Color(0, 255, 50));
+  //       // Serial.print(row + ',' + col);
 
-      } else { 
-        // turn off LED for occupied cells
-        strip.setPixelColor(leds[row][col], strip.Color(255,0,0));
-      }
+  //     } else { 
+  //       // turn off LED for occupied cells
+  //       strip.setPixelColor(leds[row][col], strip.Color(255,0,0));
+  //     }
 
-      strip.show();
-    }
+  //     strip.show();
+  //   }
 
-    Serial.println();
+  //   Serial.println();
 
-  }
+  // }
 
   // update OLED display with new board layout
-  display.clearDisplay();
-  drawBoardOnScreen();
-  display.display();
+  // display.clearDisplay();
+  // drawBoardOnScreen();
+  // display.display();
 
   delay(200); // use millis instead
-
-}
-
-
-void compare(){
 
 }
